@@ -29,6 +29,7 @@ type Transaction struct {
 // vouts : 交易输出
 // attributes : 交易附加信息
 func newEmptyTransaction(txType TransactionType, vins []Vin, vouts []Vout, attributes []Attribute) (*Transaction, error) {
+	PrintEmptyTransaction(txType, vins, vouts, attributes)
 	txtype := txType.hexValue
 	txIn, err := newTxInForEmptyTrans(vins)
 	if err != nil {
@@ -48,6 +49,21 @@ func newEmptyTransaction(txType TransactionType, vins []Vin, vouts []Vout, attri
 	version := byte(DefaultTxVersion)
 
 	return &Transaction{txtype, version, txAttributes, txOut, txIn, nil}, nil
+}
+
+func PrintEmptyTransaction(txType TransactionType, vins []Vin, vouts []Vout, attributes []Attribute) {
+	fmt.Println(fmt.Sprintf("txtype : %d", txType.hexValue))
+	for _, vin := range vins {
+		fmt.Println(fmt.Sprintf("vin : txid %s, vout : %d", vin.TxID, vin.Vout))
+	}
+
+	for _, vout := range vouts {
+		fmt.Println(fmt.Sprintf("vout : asset : %s, address : %s, value : %d", vout.Asset, vout.Address, vout.Value))
+	}
+
+	for _, attr := range attributes {
+		fmt.Println(fmt.Sprintf("attr : attr type : %s, value : %d, data : %s", attr.Attr.jsonString, attr.Attr.value, attr.Data))
+	}
 }
 
 // 交易序列化组装

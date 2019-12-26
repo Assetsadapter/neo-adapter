@@ -19,7 +19,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/LeorCao/neo-adapter/neoTransaction"
+	"github.com/Assetsadapter/neo-adapter/neoTransaction"
 	"github.com/blocktree/go-owcdrivers/omniTransaction"
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/shopspring/decimal"
@@ -365,6 +365,8 @@ func (decoder *TransactionDecoder) SignNEORawTransaction(wrapper openwallet.Wall
 			decoder.wm.Log.Info("Signature raw transaction : ", rawTx.RawHex)
 
 			keySignature.Signature = hex.EncodeToString(sigPub.Signature)
+
+			fmt.Println(fmt.Sprintf("Signture : %s, Public Key : %s", hex.EncodeToString(sigPub.Signature), hex.EncodeToString(sigPub.Pubkey)))
 		}
 	}
 	rawTx.Signatures[rawTx.Account.AccountID] = keySignatures
@@ -388,6 +390,7 @@ func (decoder *TransactionDecoder) VerifyNEORawTransaction(wrapper openwallet.Wa
 	for accountID, keySignatures := range rawTx.Signatures {
 		decoder.wm.Log.Debug("accountID Signatures:", accountID)
 		for _, keySignature := range keySignatures {
+			fmt.Println(fmt.Sprintf("Verify : Signture : %s, Public Key : %s", keySignature.Signature, keySignature.Address.PublicKey))
 			signature, _ := hex.DecodeString(keySignature.Signature)
 			pubkey, _ := hex.DecodeString(keySignature.Address.PublicKey)
 
@@ -994,11 +997,8 @@ func (decoder *TransactionDecoder) CreateNEOSummaryRawTransaction(wrapper openwa
 			return nil, err
 		}
 
-		//保留1个omni的最低转账成本的utxo 用于汇总omni
-		//unspents = decoder.keepOmniCostUTXONotToUse(unspents)
-
 		//尽可能筹够最大input数
-		if len(unspents)+len(sumUnspents) < decoder.wm.Config.MaxTxInputs {
+		if len(unspents)+len(sumUnspents) <= decoder.wm.Config.MaxTxInputs {
 			sumUnspents = append(sumUnspents, unspents...)
 			//if retainedBalance.GreaterThan(decimal.Zero) {
 			//	outputAddrs = appendOutput(outputAddrs, addr, retainedBalance)

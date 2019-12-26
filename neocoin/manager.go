@@ -1036,7 +1036,28 @@ func (wm *WalletManager) ListUnspent(min uint64, addresses ...string) ([]*Unspen
 	return utxo, nil
 }
 
-//getTransactionByCore 获取交易单 neo 的 getunspents 接口一次请求只接收一个地址，传入多个地址默认只返回第一个地址的utxo信息
+// 认领钱包中的GAS
+func (wm *WalletManager) ClaimGAS(address string) (error) {
+
+	err := wm.claimGASByCore(address)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// claimgas 获取钱包中的GAS到指定地址
+func (wm *WalletManager) claimGASByCore(address string) error {
+	request := []interface{}{address}
+	_, err := wm.WalletClient.Call("claimgas", request)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//getListUnspentByCore 获取交易单 neo 的 getunspents 接口一次请求只接收一个地址，传入多个地址默认只返回第一个地址的utxo信息
 func (wm *WalletManager) getListUnspentByCore(min uint64, addresse string) (*UnspentBalance, error) {
 
 	var (

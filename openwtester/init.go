@@ -1,7 +1,7 @@
 package openwtester
 
 import (
-	"github.com/LeorCao/neo-adapter/neocoin"
+	"github.com/Assetsadapter/neo-adapter/neocoin"
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openw"
 )
