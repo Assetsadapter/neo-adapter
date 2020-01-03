@@ -1730,26 +1730,25 @@ func (bs *NEOBlockScanner) Stop() error {
 	return nil
 }
 
-//
-////Pause 暂停扫描
-//func (bs *NEOBlockScanner) Pause() error {
-//	if bs.wm.Config.RPCServerType == RPCServerExplorer {
-//		return nil
-//	} else {
-//		bs.BlockScannerBase.Pause()
-//	}
-//	return nil
-//}
-//
-////Restart 继续扫描
-//func (bs *NEOBlockScanner) Restart() error {
-//	if bs.wm.Config.RPCServerType == RPCServerExplorer {
-//		return nil
-//	} else {
-//		bs.BlockScannerBase.Restart()
-//	}
-//	return nil
-//}
+//Pause 暂停扫描
+func (bs *NEOBlockScanner) Pause() error {
+	if bs.wm.Config.RPCServerType == RPCServerExplorer {
+		return nil
+	} else {
+		bs.BlockScannerBase.Pause()
+	}
+	return nil
+}
+
+//Restart 继续扫描
+func (bs *NEOBlockScanner) Restart() error {
+	if bs.wm.Config.RPCServerType == RPCServerExplorer {
+		return nil
+	} else {
+		bs.BlockScannerBase.Restart()
+	}
+	return nil
+}
 
 /******************* 使用insight socket.io 监听区块 *******************/
 
@@ -1922,4 +1921,100 @@ func (wm *WalletManager) getBestBlockHash() (string, error) {
 		return "", err
 	}
 	return result.String(), nil
+}
+
+//GetLocalNewBlock 获取本地记录的区块高度和hash
+func (bs *NEOBlockScanner) GetLocalNewBlock() (uint64, string, error) {
+
+	if bs.BlockchainDAI == nil {
+		return 0, "", fmt.Errorf("Blockchain DAI is not setup ")
+	}
+
+	header, err := bs.BlockchainDAI.GetCurrentBlockHead(bs.wm.Symbol())
+	if err != nil {
+		return 0, "", err
+	}
+
+	return header.Height, header.Hash, nil
+}
+
+//SaveLocalNewBlock 记录区块高度和hash到本地
+func (bs *NEOBlockScanner) SaveLocalNewBlock(blockHeight uint64, blockHash string) error {
+
+	if bs.BlockchainDAI == nil {
+		return fmt.Errorf("Blockchain DAI is not setup ")
+	}
+
+	header := &openwallet.BlockHeader{
+		Hash:   blockHash,
+		Height: blockHeight,
+		Fork:   false,
+		Symbol: bs.wm.Symbol(),
+	}
+
+	return bs.BlockchainDAI.SaveCurrentBlockHead(header)
+}
+
+//SaveLocalBlock 记录本地新区块
+func (bs *NEOBlockScanner) SaveLocalBlock(block *Block) error {
+
+	if bs.BlockchainDAI == nil {
+		return fmt.Errorf("Blockchain DAI is not setup ")
+	}
+
+	header := &openwallet.BlockHeader{
+		Hash:              block.Hash,
+		Merkleroot:        block.Merkleroot,
+		Previousblockhash: block.Previousblockhash,
+		Height:            block.Height,
+		Time:              uint64(block.Time),
+		Symbol:            bs.wm.Symbol(),
+	}
+
+	return bs.BlockchainDAI.SaveLocalBlockHead(header)
+}
+
+//GetLocalBlock 获取本地区块数据
+func (bs *NEOBlockScanner) GetLocalBlock(height uint64) (*Block, error) {
+
+	if bs.BlockchainDAI == nil {
+		return nil, fmt.Errorf("Blockchain DAI is not setup ")
+	}
+
+	header, err := bs.BlockchainDAI.GetLocalBlockHeadByHeight(height, bs.wm.Symbol())
+	if err != nil {
+		return nil, err
+	}
+
+	block := &Block{
+		Hash:   header.Hash,
+		Height: header.Height,
+	}
+
+	return block, nil
+}
+
+//获取未扫记录
+func (bs *NEOBlockScanner) GetUnscanRecords() ([]*openwallet.UnscanRecord, error) {
+
+	if bs.BlockchainDAI == nil {
+		return nil, fmt.Errorf("Blockchain DAI is not setup ")
+	}
+
+	return bs.BlockchainDAI.GetUnscanRecords(bs.wm.Symbol())
+}
+
+//DeleteUnscanRecord 删除指定高度的未扫记录
+func (bs *NEOBlockScanner) DeleteUnscanRecord(height uint64) error {
+	if bs.BlockchainDAI == nil {
+		return fmt.Errorf("Blockchain DAI is not setup ")
+	}
+
+	return bs.BlockchainDAI.DeleteUnscanRecordByHeight(height, bs.wm.Symbol())
+}
+
+//SupportBlockchainDAI 支持外部设置区块链数据访问接口
+//@optional
+func (bs *NEOBlockScanner) SupportBlockchainDAI() bool {
+	return true
 }

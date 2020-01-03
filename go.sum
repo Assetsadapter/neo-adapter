@@ -49,6 +49,7 @@ github.com/blocktree/openwallet v1.4.5/go.mod h1:e5IqJ6OqCM5qEN4TTxeeWbd3l3kCRLP
 github.com/blocktree/openwallet v1.4.6/go.mod h1:e5IqJ6OqCM5qEN4TTxeeWbd3l3kCRLPC6fG4/KLiA7I=
 github.com/blocktree/openwallet v1.4.8 h1:WU4T6D4AjbVE4CDb1OAzLk8Ho6ZLU60OQ68B+VarLT0=
 github.com/blocktree/openwallet v1.4.8/go.mod h1:e5IqJ6OqCM5qEN4TTxeeWbd3l3kCRLPC6fG4/KLiA7I=
+github.com/blocktree/openwallet v1.5.5/go.mod h1:e5IqJ6OqCM5qEN4TTxeeWbd3l3kCRLPC6fG4/KLiA7I=
 github.com/blocktree/ripple-adapter v1.0.13/go.mod h1:eHHzuuFqm9NnWfc+wpx0XgcKQPxGmiyZ5pFcLV4ngjA=
 github.com/blocktree/virtualeconomy-adapter v1.1.5/go.mod h1:L1qpSNof49eCtN1ep/LEz2H9ngKsDxzhRqoistQWa/U=
 github.com/blocktree/waykichain-adapter v1.0.3/go.mod h1:WwX/retaUfrLYP4ZOFVxtC4Duw1R4cjs+ErfjefqhEU=
