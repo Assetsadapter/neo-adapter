@@ -139,7 +139,6 @@ func (bs *NEOBlockScanner) ScanBlockTask() {
 		// getblockcount 接口拿到的区块数
 		// 包含了创世区块，所以要减1，
 		// 否则后面执行 getblockhash 会报错 ： [-100]Invalid Height
-		maxHeight--
 		if err != nil {
 			//下一个高度找不到会报异常
 			bs.wm.Log.Std.Info("block scanner can not get rpc-server block height; unexpected error: %v", err)
