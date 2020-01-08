@@ -1286,7 +1286,7 @@ func (wm *WalletManager) getBlockHeightByCore() (uint64, error) {
 		return 0, err
 	}
 
-	return result.Uint(), nil
+	return result.Uint()-1, nil
 }
 
 //GetLocalNewBlock 获取本地记录的区块高度和hash
