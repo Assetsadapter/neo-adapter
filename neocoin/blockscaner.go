@@ -810,11 +810,11 @@ func (bs *NEOBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 
 			//提取出账部分记录
 			from, totalSpent := bs.extractTxInput(trx, result, scanAddressFunc)
-			bs.wm.Log.Debug("from:", from, "totalSpent:", totalSpent)
+			//bs.wm.Log.Debug("from:", from, "totalSpent:", totalSpent)
 
 			//提取入账部分记录
 			to, totalReceived := bs.extractTxOutput(trx, result, scanAddressFunc)
-			bs.wm.Log.Debug("to:", to, "totalReceived:", totalReceived)
+			//bs.wm.Log.Debug("to:", to, "totalReceived:", totalReceived)
 
 			for _, extractData := range result.extractData {
 				tx := &openwallet.Transaction{
