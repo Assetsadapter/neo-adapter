@@ -24,6 +24,7 @@ import (
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/shopspring/decimal"
 	"sort"
+	"strconv"
 	"strings"
 
 	//"sort"
@@ -94,6 +95,21 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 	return rawTxArray, nil
 }
 
+//计算neo的hexId
+func GetTxId(rawTx string) (string,error){
+
+	txBytes,err:=hex.DecodeString(rawTx)
+	if err !=nil{
+		return "",err
+	}
+	tx,err := neoTransaction.DecodeRawTransaction(txBytes)
+	//scripts 不参与txId计算
+	if err!=nil{
+		return "",err
+	}
+	return tx.GetHash()
+
+}
 //SendRawTransaction 广播交易单
 func (decoder *TransactionDecoder) SubmitRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
 
@@ -105,13 +121,23 @@ func (decoder *TransactionDecoder) SubmitRawTransaction(wrapper openwallet.Walle
 		return nil, fmt.Errorf("transaction is not completed validation")
 	}
 
-	txid, err := decoder.wm.SendRawTransaction(rawTx.RawHex)
+	result, err := decoder.wm.SendRawTransaction(rawTx.RawHex)
 	if err != nil {
 		decoder.wm.Log.Warningf("[Sid: %s] submit raw hex: %s", rawTx.Sid, rawTx.RawHex)
 		return nil, err
 	}
+	isSucc,resultParserErr := strconv.ParseBool(result)
+	if !isSucc{
+		decoder.wm.Log.Warningf("[Sid: %s] submit raw hex: %s", rawTx.Sid, rawTx.RawHex)
+		return nil, resultParserErr
+	}
 
-	rawTx.TxID = txid
+	//计算TxId
+	txId,err := GetTxId(rawTx.RawHex)
+	if err !=nil{
+		return  nil,err
+	}
+	rawTx.TxID = txId
 	rawTx.IsSubmit = true
 
 	decimals := int32(0)
@@ -369,6 +395,7 @@ func (decoder *TransactionDecoder) SignNEORawTransaction(wrapper openwallet.Wall
 			fmt.Println(fmt.Sprintf("Signture : %s, Public Key : %s", hex.EncodeToString(sigPub.Signature), hex.EncodeToString(sigPub.Pubkey)))
 		}
 	}
+
 	rawTx.Signatures[rawTx.Account.AccountID] = keySignatures
 	return nil
 }
@@ -805,124 +832,7 @@ func (decoder *TransactionDecoder) SignOmniRawTransaction(wrapper openwallet.Wal
 //VerifyOmniRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
 func (decoder *TransactionDecoder) VerifyOmniRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
-	//先加载是否有配置文件
-	//err := decoder.wm.LoadConfig()
-	//if err != nil {
-	//	return err
-	//}
-
-	var (
-		txUnlocks  = make([]omniTransaction.TxUnlock, 0)
-		emptyTrans = rawTx.RawHex
-		//sigPub     = make([]neoTransaction.SignaturePubkey, 0)
-		transHash     = make([]omniTransaction.TxHash, 0)
-		addressPrefix omniTransaction.AddressPrefix
-	)
-
-	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
-		//this.wm.Log.Std.Error("len of signatures error. ")
-		return fmt.Errorf("transaction signature is empty")
-	}
-
-	for accountID, keySignatures := range rawTx.Signatures {
-		decoder.wm.Log.Debug("accountID Signatures:", accountID)
-		for _, keySignature := range keySignatures {
-
-			signature, _ := hex.DecodeString(keySignature.Signature)
-			pubkey, _ := hex.DecodeString(keySignature.Address.PublicKey)
-
-			signaturePubkey := omniTransaction.SignaturePubkey{
-				Signature: signature,
-				Pubkey:    pubkey,
-			}
-
-			//sigPub = append(sigPub, signaturePubkey)
-
-			txHash := omniTransaction.TxHash{
-				Hash: keySignature.Message,
-				Normal: &omniTransaction.NormalTx{
-					Address: keySignature.Address.Address,
-					SigPub:  signaturePubkey,
-				},
-			}
-
-			transHash = append(transHash, txHash)
-
-			decoder.wm.Log.Debug("Signature:", keySignature.Signature)
-			decoder.wm.Log.Debug("PublicKey:", keySignature.Address.PublicKey)
-		}
-	}
-
-	txBytes, err := hex.DecodeString(emptyTrans)
-	if err != nil {
-		return errors.New("Invalid transaction hex data!")
-	}
-
-	trx, err := omniTransaction.DecodeRawTransaction(txBytes, decoder.wm.Config.SupportSegWit)
-	if err != nil {
-		return errors.New("Invalid transaction data! ")
-	}
-
-	for i, vin := range trx.Vins {
-
-		utxo, err := decoder.wm.GetTxOut(vin.GetTxID(), uint64(vin.GetVout()))
-		if err != nil {
-			return err
-		}
-
-		txUnlock := omniTransaction.TxUnlock{
-			LockScript: utxo.ScriptPubKey,
-		}
-		txUnlocks = append(txUnlocks, txUnlock)
-
-		transHash = resetTransHashFunc(transHash, utxo.Addr, i)
-	}
-
-	//decoder.wm.Log.Debug(emptyTrans)
-
-	if decoder.wm.Config.IsTestNet {
-		addressPrefix = omniTransaction.AddressPrefix{
-			P2PKHPrefix:  decoder.wm.Config.TestNetAddressPrefix.P2PKHPrefix,
-			P2WPKHPrefix: decoder.wm.Config.TestNetAddressPrefix.P2WPKHPrefix,
-			Bech32Prefix: decoder.wm.Config.TestNetAddressPrefix.Bech32Prefix,
-		}
-	} else {
-		addressPrefix = omniTransaction.AddressPrefix{
-			P2PKHPrefix:  decoder.wm.Config.MainNetAddressPrefix.P2PKHPrefix,
-			P2WPKHPrefix: decoder.wm.Config.MainNetAddressPrefix.P2WPKHPrefix,
-			Bech32Prefix: decoder.wm.Config.MainNetAddressPrefix.Bech32Prefix,
-		}
-	}
-
-	////////填充签名结果到空交易单
-	//  传入TxUnlock结构体的原因是： 解锁向脚本支付的UTXO时需要对应地址的赎回脚本， 当前案例的对应字段置为 "" 即可
-	signedTrans, err := omniTransaction.InsertSignatureIntoEmptyTransaction(emptyTrans, transHash, txUnlocks)
-	if err != nil {
-		return fmt.Errorf("transaction compose signatures failed")
-	}
-	//else {
-	//	//	fmt.Println("拼接后的交易单")
-	//	//	fmt.Println(signedTrans)
-	//	//}
-
-	/////////验证交易单
-	//验证时，对于公钥哈希地址，需要将对应的锁定脚本传入TxUnlock结构体
-
-	pass := omniTransaction.VerifyRawTransaction(signedTrans, txUnlocks, addressPrefix)
-	if pass {
-		decoder.wm.Log.Debug("transaction verify passed")
-		rawTx.IsCompleted = true
-		rawTx.RawHex = signedTrans
-	} else {
-		decoder.wm.Log.Debug("transaction verify failed")
-		rawTx.IsCompleted = false
-
-		decoder.wm.Log.Warningf("[Sid: %s] signedTrans: %s", rawTx.Sid, signedTrans)
-		decoder.wm.Log.Warningf("[Sid: %s] txUnlocks: %+v", rawTx.Sid, txUnlocks)
-		decoder.wm.Log.Warningf("[Sid: %s] addressPrefix: %+v", rawTx.Sid, addressPrefix)
-	}
-
-	return nil
+	return  nil
 }
 
 //CreateNEOSummaryRawTransaction 创建NEO汇总交易
@@ -1097,7 +1007,6 @@ func (decoder *TransactionDecoder) createNEORawTransaction(wrapper openwallet.Wa
 		txFrom           = make([]string, 0)
 		txTo             = make([]string, 0)
 		accountID        = rawTx.Account.AccountID
-		limit            = 2000
 	)
 
 	if len(usedUtxos) == 0 {
@@ -1114,7 +1023,7 @@ func (decoder *TransactionDecoder) createNEORawTransaction(wrapper openwallet.Wa
 		totalSend = totalSend.Add(amount)
 		destinations = append(destinations, addr)
 		//计算账户的实际转账amount
-		addresses, findErr := wrapper.GetAddressList(0, limit, "AccountID", accountID)
+		addresses, findErr := wrapper.GetAddressList(0, -1, "AccountID", accountID, "Address", addr)
 		if findErr != nil || len(addresses) == 0 {
 			//amountDec, _ := decimal.NewFromString(amount)
 			accountTotalSent = accountTotalSent.Add(amount)
@@ -1154,7 +1063,6 @@ func (decoder *TransactionDecoder) createNEORawTransaction(wrapper openwallet.Wa
 	}
 
 	rawTx.RawHex = emptyTrans
-
 	if rawTx.Signatures == nil {
 		rawTx.Signatures = make(map[string][]*openwallet.KeySignature)
 	}

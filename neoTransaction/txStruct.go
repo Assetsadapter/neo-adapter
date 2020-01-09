@@ -1,8 +1,11 @@
 package neoTransaction
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/ontio/ontology/common"
+
 )
 
 type Transaction struct {
@@ -64,6 +67,20 @@ func PrintEmptyTransaction(txType TransactionType, vins []Vin, vouts []Vout, att
 	for _, attr := range attributes {
 		fmt.Println(fmt.Sprintf("attr : attr type : %s, value : %d, data : %s", attr.Attr.jsonString, attr.Attr.value, attr.Data))
 	}
+}
+func (t *Transaction) GetHash() (string,error){
+
+	t.Scripts = nil
+	//scripts 不参与txId计算
+	t.Scripts = nil
+	bytes,err := t.encodeToBytes()
+	if err !=nil{
+		return  "",nil
+	}
+	temp := sha256.Sum256(bytes)
+	hash := common.Uint256(sha256.Sum256(temp[:]))
+	return "0x"+hash.ToHexString(),nil
+
 }
 
 // 交易序列化组装

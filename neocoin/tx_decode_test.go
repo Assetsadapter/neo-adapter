@@ -66,3 +66,12 @@ func TestOrderHash(t *testing.T) {
 
 	fmt.Println(confused)
 }
+
+func TestGetTxId(t *testing.T) {
+	str :="80000001c249bb0e8c4e02ed738eeafd5b61c180d9cb1d7633fcdb062aa3a01372ebf4050000019b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500e1f50500000000205f46e5be17823bc84f060f545d55a56455f8790141407d27db1a9bbc6d7d156ad6d34b2499cdeba3515dcec7c38ad967bf164b0fe8e4948a828c140a7799317f0f1101022ea1ad9e4ccf2d731470be2413da72d6e05e232103df22a1f7263a5300ac68849696ab52ee79466de5c414e44fcc8ea43abd8dcb5fac"
+	txId,err := GetTxId(str)
+	if err!=nil{
+		t.Error(err)
+	}
+	fmt.Println(txId)
+}
